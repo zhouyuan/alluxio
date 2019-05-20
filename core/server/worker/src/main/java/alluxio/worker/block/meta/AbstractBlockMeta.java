@@ -59,6 +59,8 @@ public abstract class AbstractBlockMeta {
    * @return committed file path
    */
   public static String commitPath(StorageDir dir, long blockId) {
+    System.out.println("commit");
+    System.out.println(blockId);
     return PathUtils.concatPath(dir.getDirPath(), blockId);
   }
 

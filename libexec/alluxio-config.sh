@@ -52,6 +52,8 @@ if [[ -n "${ALLUXIO_MASTER_ADDRESS}" ]]; then
   ALLUXIO_MASTER_HOSTNAME=${ALLUXIO_MASTER_ADDRESS}
 fi
 
+ALLUXIO_JAVA_OPTS+=" -Djava.library.path=/root/git/llpl/target/cppbuild "
+
 if [[ -n "${ALLUXIO_HOME}" ]]; then
   ALLUXIO_JAVA_OPTS+=" -Dalluxio.home=${ALLUXIO_HOME}"
 fi

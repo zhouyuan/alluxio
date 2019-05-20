@@ -60,6 +60,7 @@ public final class MaxFreeAllocator implements Allocator {
     Preconditions.checkNotNull(location, "location");
     StorageDirView candidateDirView = null;
 
+    System.out.println("allocateBlock");
     if (location.equals(BlockStoreLocation.anyTier())) {
       for (StorageTierView tierView : mManagerView.getTierViews()) {
         candidateDirView = getCandidateDirInTier(tierView, blockSize);

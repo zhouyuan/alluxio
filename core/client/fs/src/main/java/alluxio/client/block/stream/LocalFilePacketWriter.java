@@ -164,6 +164,9 @@ public final class LocalFilePacketWriter implements PacketWriter {
         Protocol.LocalBlockCompleteRequest request =
             Protocol.LocalBlockCompleteRequest.newBuilder().setBlockId(mBlockId).build();
         NettyRPC.call(mNettyRPCContext, new ProtoMessage(request));
+        System.out.println("closing");
+        System.out.println(mBlockId);
+        assert mBlockId > 0;
       }
     });
     mCloser.close();

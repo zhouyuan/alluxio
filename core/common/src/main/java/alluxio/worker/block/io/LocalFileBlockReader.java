@@ -14,6 +14,9 @@ package alluxio.worker.block.io;
 import com.google.common.base.Preconditions;
 import com.google.common.io.Closer;
 import io.netty.buffer.ByteBuf;
+import lib.llpl.Heap;
+import lib.llpl.MemoryBlock;
+import lib.llpl.Transactional;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -35,6 +38,9 @@ public final class LocalFileBlockReader implements BlockReader {
   private final long mFileSize;
   private boolean mClosed;
   private int mUsageCount = 0;
+  private Heap mHeap;
+  private MemoryBlockArray mHeaderFile;
+  private int mArraySlot = 0;
 
   /**
    * Constructs a Block reader given the file path of the block.
@@ -46,6 +52,8 @@ public final class LocalFileBlockReader implements BlockReader {
     mLocalFile = mCloser.register(new RandomAccessFile(mFilePath, "r"));
     mFileSize = mLocalFile.length();
     mLocalFileChannel = mCloser.register(mLocalFile.getChannel());
+    mHeap = Heap.getHeap("/mnt/ramdisk/pmemdata");
+    mHeaderFile = new MemoryBlockArray(mFilePath, 100);
   }
 
   @Override
@@ -95,6 +103,14 @@ public final class LocalFileBlockReader implements BlockReader {
     if (length == -1L) {
       length = mFileSize - offset;
     }
+
+    //TODO(): calc slot index from offset and length
+    MemoryBlock<Transactional> header = mHeaderFile.get(mArraySlot);
+    long addr = header.getLong(0);
+    MemoryBlock<Transactional> mr = mHeap.memoryBlockFromAddress(Transactional.class, addr);
+    byte[] content = new byte[mr.getInt(0)];
+    mr.copyToArray(Long.BYTES, content, 0, mr.getInt(0));
+
     return mLocalFileChannel.map(FileChannel.MapMode.READ_ONLY, offset, length);
   }
 

@@ -204,6 +204,9 @@ public final class FileUtils {
    * @param dstPath pathname string of destination file
    */
   public static void move(String srcPath, String dstPath) throws IOException {
+    System.out.println("move file");
+    System.out.println(srcPath);
+    System.out.println(dstPath);
     Files.move(Paths.get(srcPath), Paths.get(dstPath), StandardCopyOption.REPLACE_EXISTING);
   }
 

@@ -11,12 +11,16 @@
 
 package alluxio.worker.block.io;
 
-import alluxio.util.io.BufferUtils;
+//import alluxio.util.io.BufferUtils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.io.Closer;
 import io.netty.buffer.ByteBuf;
+import lib.llpl.Heap;
+import lib.llpl.MemoryBlock;
+import lib.llpl.Transactional;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -37,6 +41,9 @@ public final class LocalFileBlockWriter implements BlockWriter {
   private final Closer mCloser = Closer.create();
   private long mPosition;
   private boolean mClosed;
+  private Heap mHeap;
+  private MemoryBlockArray mHeaderFile;
+  private int mArraySlot;
 
   /**
    * Constructs a Block writer given the file path of the block.
@@ -44,14 +51,31 @@ public final class LocalFileBlockWriter implements BlockWriter {
    * @param path file path of the block
    */
   public LocalFileBlockWriter(String path) throws IOException {
+    File testfile = new File(path);
+    boolean exists = testfile.exists();
+    if (exists) {
+      System.out.println("AAAAAAA exists");
+    }
+
     mFilePath = Preconditions.checkNotNull(path, "path");
     mLocalFile = mCloser.register(new RandomAccessFile(mFilePath, "rw"));
     mLocalFileChannel = mCloser.register(mLocalFile.getChannel());
+    //TODO(): parse path to filename and heap name
+    System.out.println(mFilePath);
+    File testfile1 = new File(mFilePath);
+    exists = testfile1.exists();
+    if (exists) {
+      System.out.println("exists");
+      testfile1.delete();
+    }
+    mHeap = Heap.getHeap("/mnt/ramdisk/pmemdata", 1048576000L);
+    mHeaderFile = new MemoryBlockArray(mFilePath, 100);
+    mArraySlot = 0;
   }
 
   @Override
   public long append(ByteBuffer inputBuf) throws IOException {
-    long bytesWritten = write(mLocalFileChannel.size(), inputBuf.duplicate());
+    long bytesWritten = write(0, inputBuf.duplicate());
     mPosition += bytesWritten;
     return bytesWritten;
   }
@@ -93,11 +117,21 @@ public final class LocalFileBlockWriter implements BlockWriter {
    */
   private long write(long offset, ByteBuffer inputBuf) throws IOException {
     int inputBufLength = inputBuf.limit() - inputBuf.position();
-    MappedByteBuffer outputBuf =
-        mLocalFileChannel.map(FileChannel.MapMode.READ_WRITE, offset, inputBufLength);
-    outputBuf.put(inputBuf);
-    int bytesWritten = outputBuf.limit();
-    BufferUtils.cleanDirectBuffer(outputBuf);
-    return bytesWritten;
+    MappedByteBuffer outputBuf = null;
+    //    mLocalFileChannel.map(FileChannel.MapMode.READ_WRITE, offset, inputBufLength);
+    //outputBuf.put(inputBuf);
+    //int bytesWritten = outputBuf.limit();
+    //BufferUtils.cleanDirectBuffer(outputBuf);
+
+    MemoryBlock<Transactional> mr = mHeap.allocateMemoryBlock(Transactional.class,
+        inputBufLength + Long.BYTES);
+    byte[] srcArr = new byte[inputBufLength];
+    inputBuf.get(srcArr);
+    mr.setLong(0, inputBufLength);
+    mr.copyFromArray(srcArr, 0, Long.BYTES, inputBufLength);
+    mHeaderFile.set(mArraySlot, mr);
+    mArraySlot++;
+
+    return inputBufLength;
   }
 }

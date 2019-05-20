@@ -31,6 +31,12 @@
 
   <dependencies>
     <!-- External dependencies -->
+      <dependency>
+        <groupId>lib</groupId>
+        <artifactId>llpl</artifactId>
+        <version>0.01</version>
+      </dependency>
+
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
